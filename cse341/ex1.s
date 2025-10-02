@@ -1,0 +1,14 @@
+	.globl main
+	.globl done
+
+	.data
+num1:	.byte 24
+num2:	.byte 15
+
+	.text
+main:	lui $t0, 0x1000
+	lb $so, ($t0)
+	lb $s1, 1($t0)
+	add $v0, $s0, $s1
+	srl $v0, $v0, 1
+done:	add $0, $0, $0
