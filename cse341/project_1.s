@@ -237,6 +237,7 @@ findnumber:
 
 firstnum:
 	add $s2, $0, $t6
+	bne $s3, $0, apply_op
 	j nextchar_check
 	or $0, $0, $0
 
@@ -281,7 +282,7 @@ findop:
 
 xvalue: #a0
 	lh $s2, 0($a0) 
-	addi $s0, $s0, 1 #move forward the character
+	#addi $s0, $s0, 1 #move forward the character
 	bne $s1, $0, apply_op
 	or $0, $0, $0
 	j loop
@@ -290,7 +291,7 @@ xvalue: #a0
     
 yvalue: #a1
 	lh $s2, 0($a1) 
-	addi $s0, $s0, 1 #move forward the character
+	#addi $s0, $s0, 1 #move forward the character
 	bne $s1, $0, apply_op
 	or $0, $0, $0
 	j loop
@@ -338,9 +339,10 @@ apply_op:
 addition:
 	add $s3, $s3, $s2 #v0 = s3(result) + s2(next character)
 	add $s2, $0, $0
-	j loop
-	or $0, $0, $0
+	j clear_op
+	addi $s0, $s0, 1
     
+
 multi:
 #s3=s3*s2
 	add $t0, $s3, $0 #t0= result before multip apply
@@ -355,11 +357,14 @@ multi_loop:
 
 	add $s3, $t4, $0
 	add $s2, $0, $0
-	j loop
-	or $0, $0, $0 #moving to the next character 
+	j clear_op
+	addi $s0, $s0, 1 
     
 divide:
-# s3= s3/s2 
+# s3= s3/s2
+	slti $t2, $s3, 0 # if s3 is negative t2 == 1 
+	bne $t2, $0, makepositive
+	or $0, $0, $0
 	add $t0, $0, $0 #result 
 	add $t1, $s3, $0 # what is left to divide
 divide_loop:
@@ -371,31 +376,43 @@ divide_loop:
 	j divide_loop
 	or $0, $0, $0
 divide_done:
+	
 	add $s3, $t0, $0
 	add $s2, $0, $0
+	j clear_op
+	addi $s0, $s0, 1 
+makepositive:
+	xori $t1, $s3, 0xffffffff
+	addi $t1, $t1, 1 
+	add $t0, $0, $0
+	j divide_loop
+	or $0 $0 $0
+clear_op:
+	add $s1, $0, $0
 	j loop
-	or $0, $0, $0 
+	or $0, $0, $0
 
 modulus:
 #s3= s3%s2
 #1. if s3 < s2 then we are done return s3 and be on with our day 
+	sub $s3, $s3, $s2
 	slt $t0, $s3, $s2
 	bne $t0, $0, modulus_done 
 #2. else subtract s3 from s2 
-	sub $s3, $s3, $s2 
+	or $0, $0, $0 
 	j modulus
 	or $0, $0, $0 
 modulus_done:
 	add $s2, $0, $0
-	j loop
-	or $0, $0, $0 
+	j clear_op
+	addi $s0, $s0, 1 
 
 subtraction:
     #s3-s2
 	sub $s3, $s3, $s2
 	add $s2, $0, $0
-	j loop
-	or $0, $0, $0
+	j clear_op
+	addi $s0, $s0, 1
 
 storing_final_addy_x_y: 
 #need to figure out if it was x or y before the equal sign
